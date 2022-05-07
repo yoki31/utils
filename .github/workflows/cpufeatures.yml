@@ -17,6 +17,11 @@ env:
   RUSTFLAGS: "-Dwarnings"
 
 jobs:
+  minimal-versions:
+    uses: RustCrypto/actions/.github/workflows/minimal-versions.yml@master
+    with:
+        working-directory: ${{ github.workflow }}
+
   # Linux tests
   linux:
     strategy:
@@ -38,14 +43,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
           override: true
           profile: minimal
+      # Isolate this crate from workspace which is otherwise MSRV 1.56 due to 2021 edition crates
+      - run: rm ../Cargo.toml
       - run: ${{ matrix.deps }}
-      - run: cargo test --target ${{ matrix.target }} --release
+      - run: cargo test --target ${{ matrix.target }}
 
   # macOS tests
   macos:
@@ -57,13 +65,16 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           target: x86_64-apple-darwin
           override: true
-      - run: cargo test --release
+      # Isolate this crate from workspace which is otherwise MSRV 1.56 due to 2021 edition crates
+      - run: rm ../Cargo.toml
+      - run: cargo test
 
   # Windows tests
   windows:
@@ -79,13 +90,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
           override: true
-      - run: cargo test --target ${{ matrix.target }} --release
+      # Isolate this crate from workspace which is otherwise MSRV 1.56 due to 2021 edition crates
+      - run: rm ../Cargo.toml
+      - run: cargo test --target ${{ matrix.target }}
 
   # Cross-compiled tests
   cross:
@@ -101,11 +115,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: RustCrypto/actions/cargo-cache@master
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
           override: true
           profile: minimal
-      - run: cargo install cross
-      - run: cross test --target ${{ matrix.target }} --release
+      - uses: RustCrypto/actions/cross-install@master
+      # Isolate this crate from workspace which is otherwise MSRV 1.56 due to 2021 edition crates
+      - run: rm ../Cargo.toml
+      - run: cross test --target ${{ matrix.target }}
